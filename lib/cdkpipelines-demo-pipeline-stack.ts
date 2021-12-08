@@ -41,8 +41,28 @@ export class CdkpipelinesDemoPipelineStack extends Stack {
     const prod = new CdkpipelinesDemoStage(this, 'Prod', {
       env: { account: '016743245065', region: 'us-east-1' },
     })
+
     pipeline.addStage(prod, {
       pre: [new ManualApprovalStep('PromoteToProd')],
+    })
+
+    const preprod = new CdkpipelinesDemoStage(this, 'PreProd', {
+      env: { account: '016743245065', region: 'us-east-1' },
+    })
+    pipeline.addStage(preprod, {
+      post: [
+        new ShellStep('TestService', {
+          commands: [
+            // Use 'curl' to GET the given URL and fail if it returns an error
+            'curl -Ssf $ENDPOINT_URL',
+          ],
+          envFromCfnOutputs: {
+            // Get the stack Output from the Stage and make it available in
+            // the shell script as $ENDPOINT_URL.
+            ENDPOINT_URL: preprod.urlOutput,
+          },
+        }),
+      ],
     })
   }
 }
